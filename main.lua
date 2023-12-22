@@ -15,9 +15,12 @@ function love.load()
 end
 
 function love.update(dt)
-
     if draw then
         drawx, drawy = love.mouse.getPosition()
+        if #pointsDrawn > 0 then
+            local lastPoint = pointsDrawn[#pointsDrawn]
+            addInterpolatedPoints(lastPoint, {drawx, drawy})
+        end
         pointsToDraw[#pointsToDraw + 1] = {drawx, drawy}
     end
 
@@ -25,6 +28,7 @@ function love.update(dt)
         erasex, erasey = love.mouse.getPosition()
     end
 end
+
 
 function love.draw()
 
@@ -69,5 +73,17 @@ function love.mousereleased(x, y, button)
     if button == 1 then
         draw = false
         erase = false
+    end
+end
+
+function addInterpolatedPoints(pointA, pointB)
+    local distance = math.sqrt((pointB[1] - pointA[1])^2 + (pointB[2] - pointA[2])^2)
+    local numPoints = math.floor(distance / drawSize) -- Adjust this based on your drawSize for better smoothness
+
+    for i = 1, numPoints do
+        local t = i / numPoints
+        local x = pointA[1] * (1 - t) + pointB[1] * t
+        local y = pointA[2] * (1 - t) + pointB[2] * t
+        pointsToDraw[#pointsToDraw + 1] = {x, y}
     end
 end
