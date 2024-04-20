@@ -5,8 +5,9 @@ function love.load()
 -- Loads all the related components of the program
 
     -- Drawing relating --
+    activePoints = {}
     drawnPoints = {}
-    drawSize = 5
+    drawSize = 4
     love.graphics.setPointSize(drawSize)
 
     drawMode = true -- true if drawing, false if erasing
@@ -20,22 +21,27 @@ function love.load()
 end
 
 function love.update()
--- continuously updates the state of the world x frames per second
+-- Continuously updates the state of the world x frames per second
 
-    --[[ Adds a point's cooridanates (mouse xy posn on canvas) to a list of points to be drawn on left click 
+    --[[ Adds a points cooridanates (mouse x y posn) to a the list drawnPoints of points to be drawn.  
          The list format is necessary to allow them to remain drawn each frame 
-         Additionally, calls addInterpolatedPoints to create smoothness in the drawing --]]
+         Additionally, calls addInterpolatedPoints to avoid diffraction in the draw strokes --]]
     if love.mouse.isDown(1) and drawMode then
         drawnPoints[#drawnPoints+1] = {love.mouse.getX(), love.mouse.getY()}
-        if #drawnPoints > 0 then
-            local lastPoint = drawnPoints[#drawnPoints]
+        activePoints[#activePoints+1] = {love.mouse.getX(), love.mouse.getY()}
+        if #activePoints > 2 then
+            local lastPoint = activePoints[#activePoints-2]
             local currentPoint = {love.mouse.getX(), love.mouse.getY()}
             addInterpolatedPoints(lastPoint, currentPoint)
         end
     end
 
-    --[[ On left click, removes any points within radius = eraseSize of the mouse position (ex, ey) 
-         from the list of points to be drawn onto the screen --]]
+    if not love.mouse.isDown(1) then
+        activePoints = {}
+    end
+
+    --[[ Removes any points within the radius (eraseSize) of the mouse position (ex, ey) 
+         from the list drawnPoints, effectively removing them from the screen --]]
     if love.mouse.isDown(1) and not drawMode then
         local ex, ey = love.mouse.getPosition()
         for i = #drawnPoints, 1, -1 do
@@ -49,13 +55,13 @@ function love.update()
 end
 
 function love.draw()
--- continously renders the state of the world x frames per second 
+-- Continously renders the state of the world x frames per second 
 
     -- Iterates through all points in drawnPoints and draws them to the canvas 
-    for k, v in pairs(drawnPoints) do
-        love.graphics.points(v[1], v[2])
-    end    
-    
+    if #drawnPoints > 0 then
+        love.graphics.points(drawnPoints)
+    end 
+
     -- FPS counter for diagnostics
     love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 10)
 
@@ -68,11 +74,11 @@ function love.mousepressed(x, y, button)
     end
 end
 
---[[ Adds points between the last point drawn and the current point drawn using linear interpolation to 
-     attempt to reproduce smoothness]]
+--[[ Adds points between pointA and pointB using linear interpolation to aide
+     in mimicing the appearance of continious lines while drawing]]
 function addInterpolatedPoints(pointA, pointB)
     local distance = math.sqrt((pointB[1] - pointA[1])^2 + (pointB[2] - pointA[2])^2)
-    local numPoints = math.floor(distance / drawSize) -- Adjust this based on drawSize for better smoothness
+    local numPoints = math.floor(distance / drawSize) 
 
     for i = 1, numPoints do
         local t = i / numPoints
